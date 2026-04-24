@@ -1,0 +1,17 @@
+# Render.com 배포 정의
+# 이 파일이 있으면 Render가 자동 인식해서 설정 채워줌
+
+services:
+  - type: web
+    name: kwanwoo-job-finder
+    runtime: docker
+    plan: free
+    region: singapore  # 한국에 가장 가까운 무료 리전
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PUBLIC_DATA_SERVICE_KEY
+        sync: false   # 대시보드에서 수동 입력 (보안)
+      - key: TZ
+        value: Asia/Seoul
+    healthCheckPath: /health

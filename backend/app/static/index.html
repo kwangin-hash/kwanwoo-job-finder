@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>아들 취업찾기</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Malgun Gothic", "맑은 고딕", -apple-system, sans-serif;
+    margin: 0; background: #f5f6fa; color: #222;
+  }
+  header {
+    background: linear-gradient(135deg, #2c5aa0 0%, #1e3a6f 100%);
+    color: white; padding: 20px 24px;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; opacity: 0.85; font-size: 13px; }
+
+  .summary {
+    display: flex; gap: 12px; padding: 16px 24px;
+    background: white; border-bottom: 1px solid #e1e4e8;
+    flex-wrap: wrap;
+  }
+  .sum-card {
+    flex: 1; min-width: 130px;
+    padding: 12px 16px; border-radius: 8px;
+    background: #f8f9fc; border: 1px solid #e1e4e8;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .sum-card:hover { border-color: #2c5aa0; background: #edf2fa; }
+  .sum-card.active { border-color: #2c5aa0; background: #2c5aa0; color: white; }
+  .sum-card .label { font-size: 12px; opacity: 0.75; }
+  .sum-card .count { font-size: 24px; font-weight: bold; margin-top: 4px; }
+  .sum-card .sub { font-size: 11px; opacity: 0.65; margin-top: 2px; }
+
+  .filters {
+    padding: 12px 24px; background: white;
+    border-bottom: 1px solid #e1e4e8;
+    font-size: 13px; color: #555;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  #search-box:focus { outline: none; border-color: #2c5aa0; box-shadow: 0 0 0 2px rgba(44,90,160,0.15); }
+  .filters label { cursor: pointer; user-select: none; }
+  .filters input { margin-right: 4px; }
+
+  .jobs { padding: 16px 24px; max-width: 1100px; margin: 0 auto; }
+  .empty { text-align: center; padding: 60px 20px; color: #888; }
+  .loading { text-align: center; padding: 40px; color: #888; }
+
+  .job {
+    background: white; border-radius: 10px;
+    padding: 16px; margin-bottom: 12px;
+    border: 1px solid #e1e4e8;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .job:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .job-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .job-company {
+    font-weight: bold; font-size: 15px; color: #1e3a6f;
+    flex: 1; min-width: 200px;
+  }
+  .job-title { font-size: 14px; margin: 4px 0 10px; line-height: 1.4; }
+  .job-meta {
+    display: flex; gap: 12px; font-size: 11px;
+    color: #777; flex-wrap: wrap; align-items: center;
+  }
+
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: bold; white-space: nowrap;
+  }
+  .pill.score-high { background: #2e7d32; color: white; }
+  .pill.score-mid { background: #f9a825; color: white; }
+  .pill.score-low { background: #9e9e9e; color: white; }
+  .pill.match { background: #5c6bc0; color: white; }
+  .pill.entry { background: #1565c0; color: white; }
+  .pill.deadline { background: #d32f2f; color: white; }
+  .pill.deadline-soon { background: #b71c1c; color: white; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0.6; } }
+
+  .tier {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; color: white; font-weight: bold;
+  }
+  .tier-PUBLIC_LARGE, .tier-PUBLIC_MID { background: #2e7d32; }
+  .tier-FINANCE_IT, .tier-CARD_INSURANCE { background: #1565c0; }
+  .tier-SI_MID, .tier-SME_IT, .tier-TELCO_IT { background: #6a1b9a; }
+  .tier-FINTECH, .tier-ECOMMERCE { background: #ef6c00; }
+  .tier-ROBOT_MID { background: #ad1457; }
+  .tier-UNKNOWN { background: #9e9e9e; }
+  .tier-HARD { background: #757575; }
+
+  .source { font-size: 10px; color: #aaa; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 김관우 취업찾기</h1>
+  <p>청운대 CS 4학년 · 정보처리기사·ADsP·데이터분석기사 · 개발자 직군 · 서울/경기 (웹개발·상담·디자인·계약직 제외)</p>
+  <p id="crawl-info" style="font-size:11px; opacity:0.7; margin-top:6px;">크롤 정보 불러오는 중...</p>
+</header>
+
+<div class="summary" id="summary">
+  <div class="sum-card active" data-cat=""><div class="label">★ 실질 타겟 전체</div><div class="count" id="cnt-all">-</div><div class="sub">클릭하여 보기</div></div>
+  <div class="sum-card" data-cat="PUBLIC"><div class="label">공공·공기업</div><div class="count" id="cnt-PUBLIC">-</div><div class="sub">공기업·임기제</div></div>
+  <div class="sum-card" data-cat="SW_DEV"><div class="label">SW 개발자</div><div class="count" id="cnt-SW_DEV">-</div><div class="sub">백엔드·시스템 (웹 제외)</div></div>
+  <div class="sum-card" data-cat="ROBOT_DEV"><div class="label">로봇·임베디드</div><div class="count" id="cnt-ROBOT_DEV">-</div><div class="sub">로봇 SW·자율주행</div></div>
+  <div class="sum-card" data-cat="DATA_ANALYST"><div class="label">데이터 분석</div><div class="count" id="cnt-DATA_ANALYST">-</div><div class="sub">BI·분석가</div></div>
+</div>
+
+<div class="filters">
+  <input type="text" id="search-box" placeholder="🔍 회사명 / 공고 / 지역 검색..."
+    style="flex:1; max-width:400px; padding:8px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px;">
+  <label><input type="checkbox" id="sort-deadline"> 마감임박순</label>
+  <span id="status" style="margin-left:auto;"></span>
+</div>
+
+<div class="jobs" id="jobs-container">
+  <div class="loading">불러오는 중...</div>
+</div>
+
+<script>
+let currentCat = "";
+let allJobs = [];
+let summaryData = [];
+
+async function loadStats() {
+  try {
+    const r = await fetch('/stats');
+    const s = await r.json();
+    let last = '없음';
+    if (s.last_crawled_at) {
+      const d = new Date(s.last_crawled_at + 'Z');
+      last = d.toLocaleString('ko-KR', { hour12: false });
+    }
+    document.getElementById('crawl-info').textContent =
+      `마지막 크롤: ${last} · 총 ${s.total}건 · 24시간 내 ${s.new_24h}건 · 다음 자동: ${s.next_scheduled_kst} (KST)`;
+  } catch (e) {}
+}
+
+async function loadSummary() {
+  try {
+    const r = await fetch('/summary');
+    summaryData = await r.json();
+
+    // 전체 카운트
+    let totalAll = summaryData.reduce((sum, s) => sum + s.total, 0);
+    document.getElementById('cnt-all').textContent = totalAll;
+    summaryData.forEach(s => {
+      const el = document.getElementById('cnt-' + s.category);
+      if (el) el.textContent = s.total;
+    });
+  } catch (e) {
+    document.getElementById('status').textContent = '요약 로드 실패';
+  }
+}
+
+async function loadJobs(cat) {
+  const container = document.getElementById('jobs-container');
+  container.innerHTML = '<div class="loading">불러오는 중...</div>';
+  document.getElementById('status').textContent = '';
+
+  try {
+    const params = new URLSearchParams();
+    if (cat) params.append('category', cat);
+    params.append('limit', '100');
+    params.append('only_entry', 'true');
+    params.append('exclude_hard', 'true');
+
+    const r = await fetch('/jobs?' + params.toString());
+    allJobs = await r.json();
+    render();
+  } catch (e) {
+    container.innerHTML = '<div class="empty">API 오류: ' + e.message + '</div>';
+  }
+}
+
+function render() {
+  const container = document.getElementById('jobs-container');
+  const sortByDeadline = document.getElementById('sort-deadline').checked;
+  const q = document.getElementById('search-box').value.trim().toLowerCase();
+
+  let jobs = allJobs.slice();
+
+  if (q) {
+    jobs = jobs.filter(j => {
+      const haystack = [
+        j.company, j.title, j.location || '',
+        j.company_tier, j.category, j.source
+      ].join(' ').toLowerCase();
+      // 공백으로 구분된 여러 키워드 모두 포함(AND)
+      return q.split(/\s+/).every(term => haystack.includes(term));
+    });
+  }
+
+  if (sortByDeadline) {
+    jobs.sort((a, b) => {
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return a.deadline.localeCompare(b.deadline);
+    });
+  }
+
+  if (jobs.length === 0) {
+    const msg = q ? `검색어 "${escapeHtml(q)}" 에 해당하는 공고가 없습니다.` : '이 트랙에 공고가 없습니다.';
+    container.innerHTML = '<div class="empty">' + msg + '</div>';
+    return;
+  }
+
+  document.getElementById('status').textContent = jobs.length + '건';
+
+  const today = new Date();
+  container.innerHTML = jobs.map(j => {
+    const rScore = Math.round(j.realistic_score);
+    const mScore = Math.round(j.match_score);
+    const rClass = rScore >= 75 ? 'score-high' : rScore >= 55 ? 'score-mid' : 'score-low';
+
+    let deadlineHtml = '';
+    if (j.deadline) {
+      const d = new Date(j.deadline);
+      const days = Math.ceil((d - today) / 86400000);
+      const cls = days <= 3 ? 'deadline-soon' : 'deadline';
+      deadlineHtml = `<span class="pill ${cls}">마감 D-${days} (${j.deadline.slice(0,10)})</span>`;
+    }
+
+    const targetStar = j.is_target_company ? '★ ' : '';
+    const tierName = j.company_tier;
+
+    return `
+      <div class="job" onclick="window.open('${j.url}','_blank')">
+        <div class="job-top">
+          <div class="job-company">${targetStar}${escapeHtml(j.company)}</div>
+          <span class="pill ${rClass}">현실성 ${rScore}</span>
+          <span class="pill match">직무 ${mScore}</span>
+        </div>
+        <div class="job-title">${escapeHtml(j.title)}</div>
+        <div class="job-meta">
+          <span class="tier tier-${tierName}">${tierLabel(tierName)}</span>
+          ${j.is_entry_level ? '<span class="pill entry">신입</span>' : ''}
+          ${deadlineHtml}
+          ${j.location ? '<span>📍 ' + escapeHtml(j.location.slice(0,30)) + '</span>' : ''}
+          <span class="source">${j.source}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function tierLabel(t) {
+  return {
+    'PUBLIC_LARGE':'대형공기업','PUBLIC_MID':'공공·진흥원',
+    'FINANCE_IT':'금융 IT','CARD_INSURANCE':'카드·보험',
+    'SI_MID':'중견 SI','SME_IT':'중소 IT','TELCO_IT':'통신 IT',
+    'FINTECH':'핀테크','ECOMMERCE':'이커머스',
+    'ROBOT_MID':'로봇·제조',
+    'UNKNOWN':'기타','HARD':'대기업'
+  }[t] || t;
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"]/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+}
+
+document.querySelectorAll('.sum-card').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.sum-card').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    currentCat = el.dataset.cat;
+    loadJobs(currentCat);
+  });
+});
+
+document.getElementById('sort-deadline').addEventListener('change', render);
+document.getElementById('search-box').addEventListener('input', () => {
+  // 타이핑 중 빠른 반응을 위해 즉시 호출
+  render();
+});
+
+loadStats();
+loadSummary();
+loadJobs('');
+setInterval(loadStats, 60000);  // 1분마다 크롤 정보 갱신
+</script>
+
+</body>
+</html>

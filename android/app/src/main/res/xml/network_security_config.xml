@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 집 WiFi 네트워크의 부모님 PC 서버(HTTP)만 허용 -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.1.218</domain>
+    </domain-config>
+</network-security-config>
