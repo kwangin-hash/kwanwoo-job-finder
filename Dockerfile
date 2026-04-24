@@ -8,11 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 의존성
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 앱 소스
-COPY . .
+# 앱 소스 (backend 폴더 내용만)
+COPY backend/ .
 
 # Render 가 PORT 환경변수 주입
 EXPOSE 8000
