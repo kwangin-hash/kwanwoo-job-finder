@@ -1,14 +1,22 @@
 """
-크롤러 실행 → 분류 → DB upsert (기업 티어·현실성 점수 포함)
+크롤러 실행 → 분류 → DB upsert (SQLite / PostgreSQL 둘 다 지원)
 """
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from app.config import IS_POSTGRES
 from app.crawlers import ALL_CRAWLERS
 from app.database import SessionLocal
 from app.models import Job
 from app.services import classifier
+
+
+if IS_POSTGRES:
+    from sqlalchemy.dialects.postgresql import insert as _dialect_insert
+    _CONFLICT_COLS = ["source", "source_id"]
+else:
+    from sqlalchemy.dialects.sqlite import insert as _dialect_insert
+    _CONFLICT_COLS = ["source", "source_id"]
 
 
 def run_ingest() -> dict:
@@ -71,24 +79,29 @@ def run_ingest() -> dict:
                     "crawled_at": datetime.utcnow(),
                 }
 
-                stmt = sqlite_insert(Job).values(**values)
-                stmt = stmt.on_conflict_do_update(
-                    index_elements=["source", "source_id"],
-                    set_={
-                        "title": values["title"],
-                        "description": values["description"],
-                        "deadline": values["deadline"],
-                        "category": values["category"],
-                        "match_score": values["match_score"],
-                        "realistic_score": values["realistic_score"],
-                        "company_tier": values["company_tier"],
-                        "is_target_company": values["is_target_company"],
-                        "is_hard_tier": values["is_hard_tier"],
-                        "is_entry_level": values["is_entry_level"],
-                        "is_disqualified": values["is_disqualified"],
-                        "crawled_at": values["crawled_at"],
-                    },
-                )
+                stmt = _dialect_insert(Job).values(**values)
+                update_set = {
+                    "title": values["title"],
+                    "description": values["description"],
+                    "deadline": values["deadline"],
+                    "category": values["category"],
+                    "match_score": values["match_score"],
+                    "realistic_score": values["realistic_score"],
+                    "company_tier": values["company_tier"],
+                    "is_target_company": values["is_target_company"],
+                    "is_hard_tier": values["is_hard_tier"],
+                    "is_entry_level": values["is_entry_level"],
+                    "is_disqualified": values["is_disqualified"],
+                    "crawled_at": values["crawled_at"],
+                }
+                if IS_POSTGRES:
+                    stmt = stmt.on_conflict_do_update(
+                        index_elements=_CONFLICT_COLS, set_=update_set,
+                    )
+                else:
+                    stmt = stmt.on_conflict_do_update(
+                        index_elements=_CONFLICT_COLS, set_=update_set,
+                    )
                 result = db.execute(stmt)
                 if result.rowcount == 1 and result.lastrowid:
                     new_count += 1
