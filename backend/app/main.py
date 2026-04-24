@@ -139,10 +139,11 @@ def _base_query(
     if category:
         q = q.filter(Job.category == category)
     if only_realistic:
+        # 4개 트랙(PUBLIC/SW_DEV/ROBOT_DEV/DATA_ANALYST) 중 하나로 분류된 공고만
+        # OR 화이트리스트 기업은 OTHER 여도 예외 허용
         q = q.filter(
             (Job.is_target_company == 1)
-            | (Job.realistic_score >= 45)
-            | ((Job.category != "OTHER") & (Job.is_entry_level == 1))
+            | (Job.category != "OTHER")
         )
     if only_entry:
         q = q.filter(Job.is_entry_level == 1)
