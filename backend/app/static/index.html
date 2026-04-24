@@ -115,6 +115,10 @@
   <input type="text" id="search-box" placeholder="🔍 회사명 / 공고 / 지역 검색..."
     style="flex:1; max-width:400px; padding:8px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px;">
   <label><input type="checkbox" id="sort-deadline"> 마감임박순</label>
+  <button id="refresh-btn" title="데이터 새로고침"
+    style="padding:6px 14px; font-size:13px; border:1px solid #2c5aa0; background:white; color:#2c5aa0; border-radius:6px; cursor:pointer;">
+    🔄 새로고침
+  </button>
   <span id="status" style="margin-left:auto;"></span>
 </div>
 
@@ -277,8 +281,20 @@ document.querySelectorAll('.sum-card').forEach(el => {
 
 document.getElementById('sort-deadline').addEventListener('change', render);
 document.getElementById('search-box').addEventListener('input', () => {
-  // 타이핑 중 빠른 반응을 위해 즉시 호출
   render();
+});
+
+document.getElementById('refresh-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 불러오는 중...';
+  await Promise.all([
+    loadStats(),
+    loadSummary(),
+    loadJobs(currentCat),
+  ]);
+  btn.disabled = false;
+  btn.textContent = '🔄 새로고침';
 });
 
 loadStats();

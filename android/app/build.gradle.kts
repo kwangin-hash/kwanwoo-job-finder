@@ -15,8 +15,8 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // 백엔드 서버 주소 (부모님 집 WiFi 네트워크에서만 접속 가능)
-        buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.218:8000/\"")
+        // 클라우드 서버 (Render) — 어디서든 접속 가능
+        buildConfigField("String", "API_BASE_URL", "\"https://kwanwoo-job-finder.onrender.com/\"")
     }
 
     buildFeatures {
